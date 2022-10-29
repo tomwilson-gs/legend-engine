@@ -20,6 +20,7 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.MutableList;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
+import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.tuple.Tuples;
 import org.eclipse.collections.impl.utility.Iterate;
 import org.eclipse.collections.impl.utility.LazyIterate;
@@ -29,22 +30,31 @@ import org.finos.legend.engine.language.pure.compiler.toPureGraph.PackageableEle
 import org.finos.legend.engine.language.pure.compiler.toPureGraph.PureModel;
 import org.finos.legend.engine.language.pure.modelManager.ModelManager;
 import org.finos.legend.engine.plan.execution.PlanExecutor;
+import org.finos.legend.engine.plan.execution.result.Result;
 import org.finos.legend.engine.plan.execution.service.test.JavaCode;
 import org.finos.legend.engine.plan.execution.service.test.SingleTestRun;
 import org.finos.legend.engine.plan.execution.service.test.TestResult;
 import org.finos.legend.engine.plan.execution.service.test.TestRun;
 import org.finos.legend.engine.plan.execution.stores.inMemory.plugin.InMemory;
 import org.finos.legend.engine.plan.execution.stores.relational.plugin.Relational;
+import org.finos.legend.engine.plan.execution.stores.relational.result.RelationalResult;
+import org.finos.legend.engine.plan.execution.stores.relational.serialization.RelationalResultToCSVSerializer;
 import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore;
+import org.finos.legend.engine.plan.generation.PlanGenerator;
 import org.finos.legend.engine.plan.generation.extension.PlanGeneratorExtension;
+import org.finos.legend.engine.plan.generation.transformers.LegendPlanTransformers;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
+import org.finos.legend.engine.plan.platform.PlanPlatform;
+import org.finos.legend.engine.post.validation.runner.ServicePostValidationRunner;
 import org.finos.legend.engine.protocol.pure.PureClientVersions;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
+import org.finos.legend.engine.protocol.pure.v1.model.executionPlan.SingleExecutionPlan;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.PureMultiExecution;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.Service;
 import org.finos.legend.engine.shared.core.ObjectMapperFactory;
 import org.finos.legend.engine.shared.core.deployment.DeploymentMode;
+import org.finos.legend.engine.shared.core.kerberos.ProfileManagerHelper;
 import org.finos.legend.engine.shared.core.operational.logs.LoggingEventType;
 import org.finos.legend.engine.shared.core.operational.prometheus.MetricsHandler;
 import org.finos.legend.engine.shared.core.operational.prometheus.Prometheus;
@@ -53,13 +63,27 @@ import org.finos.legend.engine.test.runner.service.RichServiceTestResult;
 import org.finos.legend.engine.test.runner.service.ServiceTestRunner;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidationAssertion_Impl;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidation_Impl;
 import org.finos.legend.pure.m3.coreinstance.Package;
+import org.finos.legend.pure.m3.coreinstance.meta.pure.mapping.Mapping;
+import org.finos.legend.pure.m3.coreinstance.meta.pure.metamodel.function.LambdaFunction;
+import org.finos.legend.pure.m3.coreinstance.meta.pure.runtime.Runtime;
 import org.pac4j.core.profile.CommonProfile;
+
+import javax.security.auth.Subject;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.ServiceLoader;
 import java.util.stream.Collectors;
+
+import static org.finos.legend.pure.generated.core_relational_relational_extensions_extension.Root_meta_relational_extension_relationalExtensions__Extension_MANY_;
 
 public class ServiceModeling
 {
@@ -145,5 +169,66 @@ public class ServiceModeling
             results.put(entry.getKey(), testResult);
         }
         return new SingleTestRun(richServiceTestResult.getExecutionPlan(), new JavaCode(richServiceTestResult.getJavaCodeString()), results);
+    }
+
+    @Prometheus(name = "service validation model resolve", doc = "Model resolution duration summary within service validation execution")
+    public boolean validateService(MutableList<CommonProfile> profiles, PureModelContext context, String metricsContext)
+    {
+        long start = System.currentTimeMillis();
+        PureModelContextData data = ((PureModelContextData) context).shallowCopy();
+        Service service = (Service) Iterate.detect(data.getElements(), e -> e instanceof Service);
+        PureModelContextData dataWithoutService = PureModelContextData.newBuilder().withOrigin(data.getOrigin()).withSerializer(data.getSerializer()).withElements(LazyIterate.select(data.getElements(), e -> e != service)).build();
+        PureModel pureModel  = new PureModel(dataWithoutService, profiles, deploymentMode);
+        Pair<PureModelContextData, PureModel> pureModelAndData  = Tuples.pair(dataWithoutService, pureModel);
+        long end = System.currentTimeMillis();
+        MetricsHandler.observe("service validation model resolve", start, end);
+        MetricsHandler.observeServerOperation("model_resolve", metricsContext, start, end);
+
+        if (service.execution instanceof PureMultiExecution)
+        {
+            throw new UnsupportedOperationException("MultiExecutions not yet supported");
+        }
+        Root_meta_legend_service_metamodel_Service pureService = compileService(service, pureModel.getContext(service));
+
+        Root_meta_legend_service_metamodel_PostValidationAssertion_Impl<Object> pva = new Root_meta_legend_service_metamodel_PostValidationAssertion_Impl<>("");
+        pva._id = "test-123";
+        pva._assertion = ((Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution())._func();
+        Root_meta_legend_service_metamodel_PostValidation_Impl<Object> pv = new Root_meta_legend_service_metamodel_PostValidation_Impl<>("");
+        pv._description = "Test";
+        pv._assertionsAdd(pva);
+        pureService._postValidationsAdd(pv);
+
+        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, objectMapper, planExecutor, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, metricsContext);
+
+        return postValidationRunner.runValidationAssertion("");
+
+//        Root_meta_legend_service_metamodel_PureSingleExecution singleExecution = (Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution();
+//        Mapping mapping = singleExecution._mapping();
+//        Runtime runtime = singleExecution._runtime();
+//        String clientVersion = "vX_X_X";
+//
+//        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan((LambdaFunction<?>) pureService._postValidations().getFirst()._assertions().getFirst()._assertion(), mapping, runtime, null, pureModel, clientVersion, PlanPlatform.JAVA, null, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers);
+//
+//        try
+//        {
+//            Map<String, Result> params = new HashMap<>();
+//            Result result = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, params, "", profiles));
+//
+//            System.out.println(result);
+//
+//            if (result instanceof RelationalResult)
+//            {
+//                RelationalResult relationalResult = (RelationalResult) result;
+//                RelationalResultToCSVSerializer serializer = new RelationalResultToCSVSerializer(relationalResult);
+//                String output = serializer.flush().toString();
+//                System.out.println(output);
+//            }
+//        }
+//        catch (PrivilegedActionException e)
+//        {
+//            throw new RuntimeException(e);
+//        }
+
+//        return FastList.newList();
     }
 }
