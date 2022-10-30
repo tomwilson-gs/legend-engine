@@ -15,6 +15,11 @@
 package org.finos.legend.engine.post.validation.runner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.finos.legend.engine.plan.execution.stores.relational.result.RealizedRelationalResult;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
+import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureMultiExecution_Impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.eclipse.collections.api.RichIterable;
@@ -25,7 +30,6 @@ import org.finos.legend.engine.plan.execution.result.Result;
 import org.finos.legend.engine.plan.execution.stores.inMemory.plugin.InMemory;
 import org.finos.legend.engine.plan.execution.stores.relational.plugin.Relational;
 import org.finos.legend.engine.plan.execution.stores.relational.result.RelationalResult;
-import org.finos.legend.engine.plan.execution.stores.relational.serialization.RelationalResultToCSVSerializer;
 import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore;
 import org.finos.legend.engine.plan.generation.PlanGenerator;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
@@ -34,7 +38,6 @@ import org.finos.legend.engine.protocol.pure.v1.model.executionPlan.SingleExecut
 import org.finos.legend.engine.shared.core.ObjectMapperFactory;
 import org.finos.legend.engine.shared.core.kerberos.ProfileManagerHelper;
 import org.finos.legend.engine.shared.core.operational.prometheus.MetricsHandler;
-import org.finos.legend.pure.generated.*;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.mapping.Mapping;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.metamodel.function.LambdaFunction;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.runtime.Runtime;
@@ -46,35 +49,30 @@ import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServicePostValidationRunner {
+public class ServicePostValidationRunner
+{
     private static final Logger LOGGER = LoggerFactory.getLogger(ServicePostValidationRunner.class);
 
     private static final PlanExecutor planExecutor = PlanExecutor.newPlanExecutor(Relational.build(), ServiceStore.build(), InMemory.build());
     private final PureModel pureModel;
     private final Root_meta_legend_service_metamodel_Service pureService;
-    private final ObjectMapper objectMapper;
-    private final PlanExecutor executor;
     private final RichIterable<? extends Root_meta_pure_extension_Extension> extensions;
     private final MutableList<PlanTransformer> transformers;
     private final String pureVersion;
     private final MutableList<CommonProfile> profiles;
-    private final String metricsContext;
 
-    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService, ObjectMapper objectMapper, PlanExecutor executor, RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles, String metricsContext)
+    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService,RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles)
     {
         this.pureModel = pureModel;
         this.pureService = pureService;
-        this.objectMapper = (objectMapper == null) ? ObjectMapperFactory.getNewStandardObjectMapperWithPureProtocolExtensionSupports() : objectMapper;
-        this.executor = executor;
         this.extensions = extensions;
         this.transformers = transformers;
         this.pureVersion = pureVersion;
         this.profiles = profiles;
         MetricsHandler.createMetrics(this.getClass());
-        this.metricsContext = metricsContext;
     }
 
-    public boolean runValidationAssertion(String assertionId)
+    public PostValidationAssertionResult runValidationAssertion(String assertionId)
     {
         if (pureService._execution() instanceof Root_meta_legend_service_metamodel_PureMultiExecution_Impl)
         {
@@ -86,26 +84,25 @@ public class ServicePostValidationRunner {
         Runtime runtime = singleExecution._runtime();
         LambdaFunction<?> assertion = (LambdaFunction<?>) pureService._postValidations().getFirst()._assertions().getFirst()._assertion();
 
-        return executeValidationAssertion(assertion, mapping, runtime);
+        return executeValidationAssertion(assertionId, assertion, mapping, runtime);
     }
 
-    private boolean executeValidationAssertion(LambdaFunction<?> assertion, Mapping mapping, Runtime runtime)
+    private PostValidationAssertionResult executeValidationAssertion(String assertionId, LambdaFunction<?> assertion, Mapping mapping, Runtime runtime)
     {
+        PostValidationAssertionResult postValidationAssertionResult = new PostValidationAssertionResult(assertionId, "A hardcoded assertion message", false, null);
+
         SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan(assertion, mapping, runtime, null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
 
         try
         {
             Map<String, Result> params = new HashMap<>();
-            Result result = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, params, "", profiles));
-
-            System.out.println(result);
+            Result result = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, params, null, profiles));
 
             if (result instanceof RelationalResult)
             {
-                RelationalResult relationalResult = (RelationalResult) result;
-                RelationalResultToCSVSerializer serializer = new RelationalResultToCSVSerializer(relationalResult);
-                String output = serializer.flush().toString();
-                System.out.println(output);
+                RealizedRelationalResult realizedRelationalResult = (RealizedRelationalResult) result.realizeInMemory();
+                PostValidationAssertionViolations violations = new PostValidationAssertionViolations(realizedRelationalResult.resultSetRows.size(), realizedRelationalResult.transformedRows);
+                postValidationAssertionResult.setAssertionViolations(violations);
             }
         }
         catch (PrivilegedActionException e)
@@ -113,6 +110,6 @@ public class ServicePostValidationRunner {
             throw new RuntimeException(e);
         }
 
-        return false;
+        return postValidationAssertionResult;
     }
 }
