@@ -19,11 +19,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.eclipse.collections.api.list.MutableList;
-import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.utility.Iterate;
 import org.finos.legend.engine.language.pure.modelManager.ModelManager;
 import org.finos.legend.engine.plan.execution.service.ServiceModeling;
 import org.finos.legend.engine.plan.execution.service.test.TestResult;
+import org.finos.legend.engine.post.validation.runner.PostValidationAssertionResult;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.Service;
@@ -39,9 +39,11 @@ import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.profile.ProfileManager;
 import org.pac4j.jax.rs.annotations.Pac4JProfileManager;
 import org.slf4j.Logger;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -108,11 +110,11 @@ public class ServiceModelingApi
     }
 
     @POST
-    @Path("doValidation")
+    @Path("doValidation/{assertionId}")
     @ApiOperation(value = "Execute a service validation assertion. Only Full_Interactive mode is supported by giving appropriate PureModelContext (i.e. PureModelContextData)")
     @Consumes({MediaType.APPLICATION_JSON, APPLICATION_ZLIB})
     @Prometheus(name = "service validation", doc = "Service validation execution duration")
-    public Response doValidation(PureModelContext service, @ApiParam(hidden = true) @Pac4JProfileManager ProfileManager<CommonProfile> pm, @Context UriInfo uriInfo)
+    public Response doValidation(PureModelContext service, @PathParam("assertionId") String assertionId, @ApiParam(hidden = true) @Pac4JProfileManager ProfileManager<CommonProfile> pm, @Context UriInfo uriInfo)
     {
         MutableList<CommonProfile> profiles  = ProfileManagerHelper.extractProfiles(pm);
         long start = System.currentTimeMillis();
@@ -125,11 +127,11 @@ public class ServiceModelingApi
             LOGGER.info(new LogInfo(profiles, LoggingEventType.SERVICE_FACADE_R_TEST_SERVICE_FULL_INTERACTIVE, "").toString());
             String metricContext = uriInfo != null ? uriInfo.getPath() : null;
 
-            boolean results = this.serviceModeling.validateService(profiles, service, metricContext);
+            PostValidationAssertionResult result = this.serviceModeling.validateService(profiles, service, metricContext, assertionId);
 
             MetricsHandler.observe("service validation", start, System.currentTimeMillis());
             MetricsHandler.observeRequest(uriInfo != null ? uriInfo.getPath() : null, start, System.currentTimeMillis());
-            return Response.ok(objectMapper.writeValueAsString(results), MediaType.APPLICATION_JSON_TYPE).build();
+            return Response.ok(objectMapper.writeValueAsString(result), MediaType.APPLICATION_JSON_TYPE).build();
         }
         catch (Exception ex)
         {

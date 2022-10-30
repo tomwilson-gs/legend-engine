@@ -168,6 +168,7 @@
         <module>legend-engine-test-runner-shared</module>
         <module>legend-engine-test-runner-mapping</module>
         <module>legend-engine-test-runner-service</module>
+        <module>legend-engine-post-validation-runner</module>
         <module>legend-engine-configuration</module>
         <module>legend-engine-protocol</module>
         <module>legend-engine-protocol-generation</module>
@@ -186,7 +187,6 @@
         <module>legend-engine-testable</module>
         <module>legend-engine-executionPlan-execution-authorizer</module>
         <module>legend-engine-xt-relationalStore-executionPlan-authorizer</module>
-        <module>legend-engine-post-validation-runner</module>
     </modules>
 
     <properties>
@@ -1256,6 +1256,11 @@
             <dependency>
                 <groupId>org.finos.legend.engine</groupId>
                 <artifactId>legend-engine-test-runner-mapping</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.finos.legend.engine</groupId>
+                <artifactId>legend-engine-post-validation-runner</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
