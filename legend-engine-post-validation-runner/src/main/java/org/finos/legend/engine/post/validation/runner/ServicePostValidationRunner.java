@@ -14,8 +14,6 @@
 
 package org.finos.legend.engine.post.validation.runner;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.finos.legend.engine.plan.execution.stores.relational.result.RealizedRelationalResult;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
@@ -35,7 +33,6 @@ import org.finos.legend.engine.plan.generation.PlanGenerator;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
 import org.finos.legend.engine.plan.platform.PlanPlatform;
 import org.finos.legend.engine.protocol.pure.v1.model.executionPlan.SingleExecutionPlan;
-import org.finos.legend.engine.shared.core.ObjectMapperFactory;
 import org.finos.legend.engine.shared.core.kerberos.ProfileManagerHelper;
 import org.finos.legend.engine.shared.core.operational.prometheus.MetricsHandler;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.mapping.Mapping;
@@ -44,6 +41,7 @@ import org.finos.legend.pure.m3.coreinstance.meta.pure.runtime.Runtime;
 import org.pac4j.core.profile.CommonProfile;
 
 import javax.security.auth.Subject;
+import javax.ws.rs.core.Response;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -72,7 +70,7 @@ public class ServicePostValidationRunner
         MetricsHandler.createMetrics(this.getClass());
     }
 
-    public PostValidationAssertionResult runValidationAssertion(String assertionId)
+    public Response runValidationAssertion(String assertionId)
     {
         if (pureService._execution() instanceof Root_meta_legend_service_metamodel_PureMultiExecution_Impl)
         {
@@ -87,10 +85,8 @@ public class ServicePostValidationRunner
         return executeValidationAssertion(assertionId, assertion, mapping, runtime);
     }
 
-    private PostValidationAssertionResult executeValidationAssertion(String assertionId, LambdaFunction<?> assertion, Mapping mapping, Runtime runtime)
+    private Response executeValidationAssertion(String assertionId, LambdaFunction<?> assertion, Mapping mapping, Runtime runtime)
     {
-        PostValidationAssertionResult postValidationAssertionResult = new PostValidationAssertionResult(assertionId, "A hardcoded assertion message", false, null);
-
         SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan(assertion, mapping, runtime, null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
 
         try
@@ -100,9 +96,7 @@ public class ServicePostValidationRunner
 
             if (result instanceof RelationalResult)
             {
-                RealizedRelationalResult realizedRelationalResult = (RealizedRelationalResult) result.realizeInMemory();
-                PostValidationAssertionViolations violations = new PostValidationAssertionViolations(realizedRelationalResult.resultSetRows.size(), realizedRelationalResult.transformedRows);
-                postValidationAssertionResult.setAssertionViolations(violations);
+                return Response.ok(new PostValidationAssertionStreamingOutput(assertionId, "Expected something to be empty", (RelationalResult) result)).build();
             }
         }
         catch (PrivilegedActionException e)
@@ -110,6 +104,6 @@ public class ServicePostValidationRunner
             throw new RuntimeException(e);
         }
 
-        return postValidationAssertionResult;
+        return Response.serverError().build();
     }
 }

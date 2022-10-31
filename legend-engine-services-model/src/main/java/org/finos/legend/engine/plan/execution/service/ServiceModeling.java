@@ -39,7 +39,6 @@ import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore
 import org.finos.legend.engine.plan.generation.extension.PlanGeneratorExtension;
 import org.finos.legend.engine.plan.generation.transformers.LegendPlanTransformers;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
-import org.finos.legend.engine.post.validation.runner.PostValidationAssertionResult;
 import org.finos.legend.engine.post.validation.runner.ServicePostValidationRunner;
 import org.finos.legend.engine.protocol.pure.PureClientVersions;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
@@ -62,6 +61,7 @@ import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostVa
 import org.finos.legend.pure.m3.coreinstance.Package;
 import org.pac4j.core.profile.CommonProfile;
 
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -157,7 +157,7 @@ public class ServiceModeling
     }
 
     @Prometheus(name = "service validation model resolve", doc = "Model resolution duration summary within service validation execution")
-    public PostValidationAssertionResult validateService(MutableList<CommonProfile> profiles, PureModelContext context, String metricsContext, String assertionId)
+    public Response validateService(MutableList<CommonProfile> profiles, PureModelContext context, String metricsContext, String assertionId)
     {
         long start = System.currentTimeMillis();
         PureModelContextData data = ((PureModelContextData) context).shallowCopy();

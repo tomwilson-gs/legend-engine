@@ -23,7 +23,6 @@ import org.eclipse.collections.impl.utility.Iterate;
 import org.finos.legend.engine.language.pure.modelManager.ModelManager;
 import org.finos.legend.engine.plan.execution.service.ServiceModeling;
 import org.finos.legend.engine.plan.execution.service.test.TestResult;
-import org.finos.legend.engine.post.validation.runner.PostValidationAssertionResult;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.Service;
@@ -127,11 +126,7 @@ public class ServiceModelingApi
             LOGGER.info(new LogInfo(profiles, LoggingEventType.SERVICE_FACADE_R_TEST_SERVICE_FULL_INTERACTIVE, "").toString());
             String metricContext = uriInfo != null ? uriInfo.getPath() : null;
 
-            PostValidationAssertionResult result = this.serviceModeling.validateService(profiles, service, metricContext, assertionId);
-
-            MetricsHandler.observe("service validation", start, System.currentTimeMillis());
-            MetricsHandler.observeRequest(uriInfo != null ? uriInfo.getPath() : null, start, System.currentTimeMillis());
-            return Response.ok(objectMapper.writeValueAsString(result), MediaType.APPLICATION_JSON_TYPE).build();
+            return this.serviceModeling.validateService(profiles, service, metricContext, assertionId);
         }
         catch (Exception ex)
         {
