@@ -17,7 +17,13 @@ package org.finos.legend.engine.post.validation.runner;
 import java.io.OutputStream;
 import java.sql.SQLException;
 
+import org.finos.legend.engine.plan.execution.result.StreamingResult;
+import org.finos.legend.engine.plan.execution.result.object.StreamingObjectResult;
+import org.finos.legend.engine.plan.execution.result.object.StreamingObjectResultJSONSerializer;
+import org.finos.legend.engine.plan.execution.result.serialization.SerializationFormat;
 import org.finos.legend.engine.plan.execution.stores.relational.result.RelationalResult;
+import org.finos.legend.engine.plan.execution.stores.relational.serialization.RelationalResultToPureTDSSerializer;
+import org.finos.legend.engine.plan.execution.stores.relational.serialization.RelationalResultToPureTDSToObjectSerializer;
 import org.finos.legend.engine.plan.execution.stores.relational.serialization.RelationalResultToJsonDefaultSerializer;
 
 import javax.ws.rs.core.StreamingOutput;
@@ -27,7 +33,8 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
 {
     private final String assertionId;
     private final String assertionMessage;
-    private final RelationalResult relationalResult;
+    private final StreamingResult result;
+    private final SerializationFormat format;
     private final byte[] b_assertionId = "{\"assertionId\": \"".getBytes();
     private final byte[] b_assertionMessage = "\", \"assertionMessage\": \"".getBytes();
     private final byte[] b_assertionPassed = "\", \"assertionPassed\": ".getBytes();
@@ -35,11 +42,12 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
     private final byte[] b_violations = "\"violations\": ".getBytes();
     private final byte[] b_endResult = "}}".getBytes();
 
-    public PostValidationAssertionStreamingOutput(String assertionId, String assertionMessage, RelationalResult relationalResult)
+    public PostValidationAssertionStreamingOutput(String assertionId, String assertionMessage, StreamingResult result, SerializationFormat format)
     {
         this.assertionId = assertionId;
         this.assertionMessage = assertionMessage;
-        this.relationalResult = relationalResult;
+        this.result = result;
+        this.format = format;
     }
 
     @Override
@@ -53,7 +61,7 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
             stream.write(assertionMessage.getBytes());
             stream.write(b_assertionPassed);
 
-            boolean hasRows = relationalResultHasRows(relationalResult);
+            boolean hasRows = resultHasRows(result);
             stream.write(String.valueOf(hasRows).getBytes());
 
             if (hasRows)
@@ -61,8 +69,34 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
                 stream.write(b_assertionViolations);
                 stream.write(b_violations);
 
-                RelationalResultToJsonDefaultSerializer rowsSerializer = new RelationalResultToJsonDefaultSerializer(relationalResult);
-                rowsSerializer.stream(stream);
+                if (result instanceof RelationalResult)
+                {
+                    switch (this.format)
+                    {
+                        case PURE_TDSOBJECT:
+                            new RelationalResultToPureTDSToObjectSerializer((RelationalResult) result).stream(stream);
+                            break;
+                        case PURE:
+                            new RelationalResultToPureTDSSerializer((RelationalResult) result).stream(stream);
+                            break;
+                        case DEFAULT:
+                            new RelationalResultToJsonDefaultSerializer((RelationalResult) result).stream(stream);
+                            break;
+                        default:
+                            throw new RuntimeException(this.format + " format not currently supported for RelationalResult");
+                    }
+                }
+                else if (result instanceof StreamingObjectResult)
+                {
+                    switch (this.format)
+                    {
+                        case DEFAULT:
+                            new StreamingObjectResultJSONSerializer((StreamingObjectResult<?>) result).stream(stream);
+                            break;
+                        default:
+                            throw new RuntimeException(this.format + " format not currently supported for StreamingObjectResult");
+                    }
+                }
             }
 
             stream.write(b_endResult);
@@ -73,13 +107,24 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
         }
         finally
         {
-            this.relationalResult.close();
+            this.result.close();
         }
     }
 
-    private boolean relationalResultHasRows(RelationalResult result) throws SQLException
+    private boolean resultHasRows(StreamingResult result) throws SQLException
     {
-        return !result.resultSet.isClosed() && result.resultSet.first();
+        if (result instanceof RelationalResult)
+        {
+            return !((RelationalResult) result).resultSet.isClosed() && ((RelationalResult) result).resultSet.isBeforeFirst();
+        }
+        else if (result instanceof StreamingObjectResult)
+        {
+            return !((RelationalResult) ((StreamingObjectResult<?>) result).getChildResult()).resultSet.isClosed() && ((RelationalResult) ((StreamingObjectResult<?>) result).getChildResult()).resultSet.isBeforeFirst();
+        }
+        else
+        {
+            throw new RuntimeException(result.getClass() + " not currently supported for Post Validation execution");
+        }
     }
 }
 

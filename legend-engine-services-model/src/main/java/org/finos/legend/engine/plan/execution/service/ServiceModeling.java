@@ -29,6 +29,7 @@ import org.finos.legend.engine.language.pure.compiler.toPureGraph.PackageableEle
 import org.finos.legend.engine.language.pure.compiler.toPureGraph.PureModel;
 import org.finos.legend.engine.language.pure.modelManager.ModelManager;
 import org.finos.legend.engine.plan.execution.PlanExecutor;
+import org.finos.legend.engine.plan.execution.result.serialization.SerializationFormat;
 import org.finos.legend.engine.plan.execution.service.test.JavaCode;
 import org.finos.legend.engine.plan.execution.service.test.SingleTestRun;
 import org.finos.legend.engine.plan.execution.service.test.TestResult;
@@ -157,7 +158,7 @@ public class ServiceModeling
     }
 
     @Prometheus(name = "service validation model resolve", doc = "Model resolution duration summary within service validation execution")
-    public Response validateService(MutableList<CommonProfile> profiles, PureModelContext context, String metricsContext, String assertionId)
+    public Response validateService(MutableList<CommonProfile> profiles, PureModelContext context, String metricsContext, String assertionId, SerializationFormat format)
     {
         long start = System.currentTimeMillis();
         PureModelContextData data = ((PureModelContextData) context).shallowCopy();
@@ -182,7 +183,7 @@ public class ServiceModeling
         pv._assertionsAdd(pva);
         pureService._postValidationsAdd(pv);
 
-        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles);
+        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
 
         return postValidationRunner.runValidationAssertion(assertionId);
     }

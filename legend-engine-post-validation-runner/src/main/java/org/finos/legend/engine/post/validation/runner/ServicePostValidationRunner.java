@@ -14,6 +14,8 @@
 
 package org.finos.legend.engine.post.validation.runner;
 
+import org.finos.legend.engine.plan.execution.result.StreamingResult;
+import org.finos.legend.engine.plan.execution.result.serialization.SerializationFormat;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
@@ -27,7 +29,6 @@ import org.finos.legend.engine.plan.execution.PlanExecutor;
 import org.finos.legend.engine.plan.execution.result.Result;
 import org.finos.legend.engine.plan.execution.stores.inMemory.plugin.InMemory;
 import org.finos.legend.engine.plan.execution.stores.relational.plugin.Relational;
-import org.finos.legend.engine.plan.execution.stores.relational.result.RelationalResult;
 import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore;
 import org.finos.legend.engine.plan.generation.PlanGenerator;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
@@ -58,8 +59,9 @@ public class ServicePostValidationRunner
     private final MutableList<PlanTransformer> transformers;
     private final String pureVersion;
     private final MutableList<CommonProfile> profiles;
+    private final SerializationFormat format;
 
-    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService,RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles)
+    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService,RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles, SerializationFormat format)
     {
         this.pureModel = pureModel;
         this.pureService = pureService;
@@ -67,6 +69,7 @@ public class ServicePostValidationRunner
         this.transformers = transformers;
         this.pureVersion = pureVersion;
         this.profiles = profiles;
+        this.format = format;
         MetricsHandler.createMetrics(this.getClass());
     }
 
@@ -94,16 +97,18 @@ public class ServicePostValidationRunner
             Map<String, Result> params = new HashMap<>();
             Result result = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, params, null, profiles));
 
-            if (result instanceof RelationalResult)
+            if (result instanceof StreamingResult)
             {
-                return Response.ok(new PostValidationAssertionStreamingOutput(assertionId, "Expected something to be empty", (RelationalResult) result)).build();
+                return Response.ok(new PostValidationAssertionStreamingOutput(assertionId, "Expected something to be empty", (StreamingResult) result, this.format)).build();
+            }
+            else
+            {
+                return Response.serverError().build();
             }
         }
         catch (PrivilegedActionException e)
         {
             throw new RuntimeException(e);
         }
-
-        return Response.serverError().build();
     }
 }
