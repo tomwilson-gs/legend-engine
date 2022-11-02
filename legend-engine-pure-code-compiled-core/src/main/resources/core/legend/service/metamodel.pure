@@ -146,18 +146,18 @@ Class <<doc.deprecated>> meta::legend::service::metamodel::TestContainer
    assert:FunctionDefinition<{Result<Any|*>[1]->Boolean[1]}>[1];
 }
 
-//PostValidation
+//PostConstraint
 Class meta::legend::service::metamodel::PostValidation<T|m>
 {
-    description: String[1];
-    parameters: Any[*];
-    assertions: meta::legend::service::metamodel::PostValidationAssertion<T|m>[*];
+  description: String[1];
+  parameters: Function<Any>[*];
+  assertions: meta::legend::service::metamodel::PostValidationAssertion<T|m>[1..*];
 }
 
 Class meta::legend::service::metamodel::PostValidationAssertion<T|m>
 {
-    id: String[1];
-    assertion: FunctionDefinition<{T[m]->Boolean[1]}>[1];
+  id: String[1];
+  assertion: Function<{T[m]->Boolean[1]}>[1];
 }
 
 ###Diagram
