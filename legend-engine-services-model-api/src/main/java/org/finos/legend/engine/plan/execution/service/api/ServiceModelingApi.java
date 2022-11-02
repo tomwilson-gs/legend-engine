@@ -112,11 +112,15 @@ public class ServiceModelingApi
     }
 
     @POST
-    @Path("doValidation/{assertionId}")
+    @Path("doValidation")
     @ApiOperation(value = "Execute a service validation assertion. Only Full_Interactive mode is supported by giving appropriate PureModelContext (i.e. PureModelContextData)")
     @Consumes({MediaType.APPLICATION_JSON, APPLICATION_ZLIB})
     @Prometheus(name = "service validation", doc = "Service validation execution duration")
-    public Response doValidation(PureModelContext service, @PathParam("assertionId") String assertionId, @DefaultValue(SerializationFormat.defaultFormatString) @QueryParam("serializationFormat") SerializationFormat format, @ApiParam(hidden = true) @Pac4JProfileManager ProfileManager<CommonProfile> pm, @Context UriInfo uriInfo)
+    public Response doValidation(PureModelContext service,
+                                 @DefaultValue("") @ApiParam(value = "The ID of the assertion to execute from the service", required = true) @QueryParam("assertionId") String assertionId,
+                                 @DefaultValue(SerializationFormat.defaultFormatString) @QueryParam("serializationFormat") SerializationFormat format,
+                                 @ApiParam(hidden = true) @Pac4JProfileManager ProfileManager<CommonProfile> pm,
+                                 @Context UriInfo uriInfo)
     {
         MutableList<CommonProfile> profiles  = ProfileManagerHelper.extractProfiles(pm);
         long start = System.currentTimeMillis();

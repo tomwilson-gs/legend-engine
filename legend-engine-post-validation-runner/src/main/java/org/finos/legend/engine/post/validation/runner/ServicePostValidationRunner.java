@@ -14,15 +14,18 @@
 
 package org.finos.legend.engine.post.validation.runner;
 
+import org.eclipse.collections.api.RichIterable;
+import org.finos.legend.engine.plan.execution.result.ConstantResult;
 import org.finos.legend.engine.plan.execution.result.StreamingResult;
 import org.finos.legend.engine.plan.execution.result.serialization.SerializationFormat;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidation;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidationAssertion;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureMultiExecution_Impl;
+import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
-import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
-import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureMultiExecution_Impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.list.MutableList;
 import org.finos.legend.engine.language.pure.compiler.toPureGraph.PureModel;
 import org.finos.legend.engine.plan.execution.PlanExecutor;
@@ -47,6 +50,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class ServicePostValidationRunner
 {
@@ -61,7 +65,7 @@ public class ServicePostValidationRunner
     private final MutableList<CommonProfile> profiles;
     private final SerializationFormat format;
 
-    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService,RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles, SerializationFormat format)
+    public ServicePostValidationRunner(PureModel pureModel, Root_meta_legend_service_metamodel_Service pureService, RichIterable<? extends Root_meta_pure_extension_Extension> extensions, MutableList<PlanTransformer> transformers, String pureVersion, MutableList<CommonProfile> profiles, SerializationFormat format)
     {
         this.pureModel = pureModel;
         this.pureService = pureService;
@@ -83,18 +87,40 @@ public class ServicePostValidationRunner
         Root_meta_legend_service_metamodel_PureSingleExecution singleExecution = (Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution();
         Mapping mapping = singleExecution._mapping();
         Runtime runtime = singleExecution._runtime();
-        LambdaFunction<?> assertion = (LambdaFunction<?>) pureService._postValidations().getFirst()._assertions().getFirst()._assertion();
+        LambdaFunction<?> assertion = findAssertion(assertionId);
 
         return executeValidationAssertion(assertionId, assertion, mapping, runtime);
     }
 
+    private LambdaFunction<?> findAssertion(String assertionId)
+    {
+        for (Root_meta_legend_service_metamodel_PostValidation<?> postValidation : pureService._postValidations())
+        {
+            for (Root_meta_legend_service_metamodel_PostValidationAssertion<?> assertion : postValidation._assertions())
+            {
+                if (assertion._id().equals(assertionId))
+                {
+                    return (LambdaFunction<?>) assertion._assertion();
+                }
+            }
+        }
+
+        throw new NoSuchElementException("Assertion " + assertionId + " not found");
+    }
+
     private Response executeValidationAssertion(String assertionId, LambdaFunction<?> assertion, Mapping mapping, Runtime runtime)
     {
-        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan(assertion, mapping, runtime, null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
+        LambdaFunction<?> queryFunc = (LambdaFunction<?>) ((Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution())._func();
+        SingleExecutionPlan querySep = PlanGenerator.generateExecutionPlan(queryFunc, mapping, runtime, null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
+
+        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan(assertion, mapping, runtime,  null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
 
         try
         {
+            Result queryResult = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(querySep, new HashMap<>(), null, profiles));
+
             Map<String, Result> params = new HashMap<>();
+            params.put("tds", new ConstantResult(25));
             Result result = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, params, null, profiles));
 
             if (result instanceof StreamingResult)

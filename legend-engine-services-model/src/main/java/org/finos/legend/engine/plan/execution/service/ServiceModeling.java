@@ -175,16 +175,7 @@ public class ServiceModeling
         }
         Root_meta_legend_service_metamodel_Service pureService = compileService(service, pureModel.getContext(service));
 
-        Root_meta_legend_service_metamodel_PostValidationAssertion_Impl<Object> pva = new Root_meta_legend_service_metamodel_PostValidationAssertion_Impl<>("");
-        pva._id = "test-123";
-        pva._assertion = ((Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution())._func();
-        Root_meta_legend_service_metamodel_PostValidation_Impl<Object> pv = new Root_meta_legend_service_metamodel_PostValidation_Impl<>("");
-        pv._description = "Test";
-        pv._assertionsAdd(pva);
-        pureService._postValidationsAdd(pv);
-
         ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
-
         return postValidationRunner.runValidationAssertion(assertionId);
     }
 }
