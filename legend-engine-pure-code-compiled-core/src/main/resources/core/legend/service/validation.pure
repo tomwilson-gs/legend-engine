@@ -14,6 +14,58 @@
  *  limitations under the License.
  */
 
+function meta::legend::service::validation::generateValidationQuery(query: FunctionDefinition<Any>[1], validation: FunctionDefinition<Any>[1]): FunctionDefinition<Any>[1]
+{
+  let assertExpression = $validation.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
+  assert($assertExpression.func->in([
+   meta::legend::service::validation::assertTabularDataSetEmpty_TabularDataSet_1__String_1__Boolean_1_,
+   meta::legend::service::validation::assertCollectionEmpty_Any_MANY__String_1__Boolean_1_
+  ]));
+
+  let assertMessage = $assertExpression.parametersValues->at(1)->cast(@InstanceValue).values->toOne()->cast(@String);
+
+  let nValidationSfe = $assertExpression.parametersValues->evaluateAndDeactivate()->at(0)->evaluateAndDeactivate();
+
+  let nValidationQuery = ^$validation
+  (
+    expressionSequence = $validation.expressionSequence->evaluateAndDeactivate()->init()->concatenate($nValidationSfe)->toOneMany()
+  )->evaluateAndDeactivate();
+
+  let querySfe = $query.expressionSequence->evaluateAndDeactivate()->last()->toOne();
+  let nQuerySfe = ^SimpleFunctionExpression
+  (
+    func = eval_Function_1__T_n__V_m_,
+    functionName = 'eval',
+    genericType = $nValidationSfe.genericType,
+    multiplicity = $nValidationSfe.multiplicity,
+    importGroup = system::imports::coreImport,
+    parametersValues = [
+      ^InstanceValue(
+        values = $nValidationQuery,
+        multiplicity = $nValidationSfe.multiplicity,
+        genericType = $nValidationSfe.genericType
+      ),
+      $querySfe
+    ]
+  )->evaluateAndDeactivate();
+
+  ^$query(expressionSequence=$query.expressionSequence->evaluateAndDeactivate()
+                                                           ->init()
+                                                           ->concatenate($nQuerySfe)
+                                                           ->toOneMany())->evaluateAndDeactivate();
+}
+
+function meta::legend::service::validation::extractAssertMessage(validation: FunctionDefinition<Any>[1]): String[1]
+{
+  let assertExpression = $validation.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
+  assert($assertExpression.func->in([
+    meta::legend::service::validation::assertTabularDataSetEmpty_TabularDataSet_1__String_1__Boolean_1_,
+    meta::legend::service::validation::assertCollectionEmpty_Any_MANY__String_1__Boolean_1_
+  ]));
+
+  $assertExpression.parametersValues->at(1)->cast(@InstanceValue).values->toOne()->cast(@String);
+}
+
 function meta::legend::service::validation::assertCollectionEmpty(collection: Any[*], message: String[1]):Boolean[1]
 {
    $collection->assertEmpty($message);
@@ -24,7 +76,7 @@ function meta::legend::service::validation::assertTabularDataSetEmpty(tds: Tabul
    $tds->tdsRows()->assertEmpty($message);
 }
 
-// Syntactic Suger
+// Syntactic Sugar
 function meta::legend::service::validation::rowCountGreaterThan(tds: TabularDataSet[1], lowerLimit: Number[1], message: String[1]): Boolean[1]
 {
   $tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= $lowerLimit)-> meta::legend::service::validation::assertTabularDataSetEmpty($message);

@@ -37,10 +37,9 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
     private final SerializationFormat format;
     private final byte[] b_assertionId = "{\"assertionId\": \"".getBytes();
     private final byte[] b_assertionMessage = "\", \"assertionMessage\": \"".getBytes();
-    private final byte[] b_assertionPassed = "\", \"assertionPassed\": ".getBytes();
-    private final byte[] b_assertionViolations = ", \"assertionViolations\": {".getBytes();
-    private final byte[] b_violations = "\"violations\": ".getBytes();
-    private final byte[] b_endResult = "}}".getBytes();
+    private final byte[] b_assertionResult = "\", \"assertionResult\": ".getBytes();
+    private final byte[] b_assertionViolations = ", \"assertionViolations\":".getBytes();
+    private final byte[] b_endResult = "}".getBytes();
 
     public PostValidationAssertionStreamingOutput(String assertionId, String assertionMessage, StreamingResult result, SerializationFormat format)
     {
@@ -59,15 +58,14 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
             stream.write(assertionId.getBytes());
             stream.write(b_assertionMessage);
             stream.write(assertionMessage.getBytes());
-            stream.write(b_assertionPassed);
+            stream.write(b_assertionResult);
 
-            boolean hasRows = resultHasRows(result);
-            stream.write(String.valueOf(hasRows).getBytes());
+            PostValidationAssertionResult validationResult = getValidationResult();
+            stream.write(("\"" + validationResult + "\"").getBytes());
 
-            if (hasRows)
+            if (PostValidationAssertionResult.FAILED.equals(validationResult))
             {
                 stream.write(b_assertionViolations);
-                stream.write(b_violations);
 
                 if (result instanceof RelationalResult)
                 {
@@ -124,6 +122,19 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
         else
         {
             throw new RuntimeException(result.getClass() + " not currently supported for Post Validation execution");
+        }
+    }
+
+    private PostValidationAssertionResult getValidationResult()
+    {
+        try
+        {
+            boolean hasRows = resultHasRows(this.result);
+            return hasRows ? PostValidationAssertionResult.FAILED : PostValidationAssertionResult.PASSED;
+        }
+        catch (SQLException e)
+        {
+            return PostValidationAssertionResult.ERROR;
         }
     }
 }

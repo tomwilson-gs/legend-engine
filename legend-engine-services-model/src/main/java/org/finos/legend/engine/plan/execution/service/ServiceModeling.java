@@ -44,8 +44,10 @@ import org.finos.legend.engine.post.validation.runner.ServicePostValidationRunne
 import org.finos.legend.engine.protocol.pure.PureClientVersions;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
+import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.PureExecution;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.PureMultiExecution;
 import org.finos.legend.engine.protocol.pure.v1.model.packageableElement.service.Service;
+import org.finos.legend.engine.protocol.pure.v1.model.valueSpecification.Variable;
 import org.finos.legend.engine.shared.core.ObjectMapperFactory;
 import org.finos.legend.engine.shared.core.deployment.DeploymentMode;
 import org.finos.legend.engine.shared.core.operational.logs.LoggingEventType;
@@ -56,9 +58,6 @@ import org.finos.legend.engine.test.runner.service.RichServiceTestResult;
 import org.finos.legend.engine.test.runner.service.ServiceTestRunner;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
-import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidationAssertion_Impl;
-import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
-import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidation_Impl;
 import org.finos.legend.pure.m3.coreinstance.Package;
 import org.pac4j.core.profile.CommonProfile;
 
@@ -174,8 +173,9 @@ public class ServiceModeling
             throw new UnsupportedOperationException("MultiExecutions not yet supported");
         }
         Root_meta_legend_service_metamodel_Service pureService = compileService(service, pureModel.getContext(service));
+        List<Variable> rawParams = ((PureExecution) service.execution).func.parameters;
 
-        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
+        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, rawParams, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
         return postValidationRunner.runValidationAssertion(assertionId);
     }
 }
