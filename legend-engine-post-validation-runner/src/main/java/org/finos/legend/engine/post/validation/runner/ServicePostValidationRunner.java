@@ -25,14 +25,17 @@ import org.finos.legend.engine.plan.execution.result.StreamingResult;
 import org.finos.legend.engine.plan.execution.result.serialization.SerializationFormat;
 import org.finos.legend.engine.plan.execution.stores.relational.result.RelationalResult;
 import org.finos.legend.engine.protocol.pure.v1.model.valueSpecification.Variable;
+import org.finos.legend.engine.test.runner.service.ResultToPureResultVisitor;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidation;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PostValidationAssertion;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureMultiExecution_Impl;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_PureSingleExecution;
 import org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_Service;
 import org.finos.legend.pure.generated.Root_meta_pure_extension_Extension;
+import org.finos.legend.pure.generated.Root_meta_pure_tds_TabularDataSet;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.metamodel.function.FunctionDefinition;
 import org.finos.legend.pure.m3.coreinstance.meta.pure.metamodel.valuespecification.InstanceValue;
+import org.finos.legend.pure.m3.exception.PureAssertFailException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.eclipse.collections.api.list.MutableList;
@@ -61,8 +64,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
+import static org.finos.legend.pure.generated.core_legend_service_validation.Root_meta_legend_service_validation_executeAssertion_TabularDataSet_1__FunctionDefinition_1__TabularDataSet_1_;
 import static org.finos.legend.pure.generated.core_legend_service_validation.Root_meta_legend_service_validation_extractAssertMessage_FunctionDefinition_1__String_1_;
 import static org.finos.legend.pure.generated.core_legend_service_validation.Root_meta_legend_service_validation_generateValidationQuery_FunctionDefinition_1__FunctionDefinition_1__FunctionDefinition_1_;
 
@@ -180,16 +185,23 @@ public class ServicePostValidationRunner
         LambdaFunction<?> assertion = paramsWithAssertion.getTwo();
 
         LambdaFunction<?> queryFunc = (LambdaFunction<?>) ((Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution())._func();
-        FunctionDefinition<?> assertQuery = Root_meta_legend_service_validation_generateValidationQuery_FunctionDefinition_1__FunctionDefinition_1__FunctionDefinition_1_(queryFunc, assertion, pureModel.getExecutionSupport());
+        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan(queryFunc, this.mapping, this.runtime,  null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
         String assertMessage = Root_meta_legend_service_validation_extractAssertMessage_FunctionDefinition_1__String_1_(assertion, pureModel.getExecutionSupport());
-
-        MutableMap<String, Result> evaluatedParams = evaluateParameters(params);
-
-        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan((LambdaFunction<?>) assertQuery, this.mapping, this.runtime,  null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
 
         try
         {
-            Result queryResult = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, evaluatedParams, null, profiles));
+            Result queryResult = executePlan(sep, new HashMap<>());
+            org.finos.legend.pure.m3.coreinstance.meta.pure.mapping.Result<Object> pureResult = queryResult.accept(new ResultToPureResultVisitor());
+
+            try
+            {
+                Root_meta_pure_tds_TabularDataSet tdsResult = Root_meta_legend_service_validation_executeAssertion_TabularDataSet_1__FunctionDefinition_1__TabularDataSet_1_((Root_meta_pure_tds_TabularDataSet) pureResult._values().getAny(), assertion, pureModel.getExecutionSupport());
+                System.out.println(tdsResult);
+            }
+            catch (PureAssertFailException e)
+            {
+                LOGGER.info("Assertion failed");
+            }
 
             if (queryResult instanceof StreamingResult)
             {
@@ -204,5 +216,36 @@ public class ServicePostValidationRunner
         {
             throw new RuntimeException(e);
         }
+
+//        LambdaFunction<?> queryFunc = (LambdaFunction<?>) ((Root_meta_legend_service_metamodel_PureSingleExecution) pureService._execution())._func();
+//        FunctionDefinition<?> assertQuery = Root_meta_legend_service_validation_generateValidationQuery_FunctionDefinition_1__FunctionDefinition_1__FunctionDefinition_1_(queryFunc, assertion, pureModel.getExecutionSupport());
+//        String assertMessage = Root_meta_legend_service_validation_extractAssertMessage_FunctionDefinition_1__String_1_(assertion, pureModel.getExecutionSupport());
+//
+//        MutableMap<String, Result> evaluatedParams = evaluateParameters(params);
+//
+//        SingleExecutionPlan sep = PlanGenerator.generateExecutionPlan((LambdaFunction<?>) assertQuery, this.mapping, this.runtime,  null, this.pureModel, this.pureVersion, PlanPlatform.JAVA, null, this.extensions, this.transformers);
+//
+//        try
+//        {
+//            Result queryResult = Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(sep, evaluatedParams, null, profiles));
+//
+//            if (queryResult instanceof StreamingResult)
+//            {
+//                return Response.ok(new PostValidationAssertionStreamingOutput(assertionId, assertMessage, (StreamingResult) queryResult, this.format)).build();
+//            }
+//            else
+//            {
+//                return Response.serverError().build();
+//            }
+//        }
+//        catch (PrivilegedActionException e)
+//        {
+//            throw new RuntimeException(e);
+//        }
+    }
+
+    private Result executePlan(SingleExecutionPlan plan, Map<String, Result> params) throws PrivilegedActionException
+    {
+        return Subject.doAs(ProfileManagerHelper.extractSubject(profiles), (PrivilegedExceptionAction<Result>) () -> planExecutor.execute(plan, params, null, profiles));
     }
 }

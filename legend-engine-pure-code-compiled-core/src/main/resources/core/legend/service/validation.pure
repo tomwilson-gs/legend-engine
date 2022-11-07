@@ -55,6 +55,20 @@ function meta::legend::service::validation::generateValidationQuery(query: Funct
                                                            ->toOneMany())->evaluateAndDeactivate();
 }
 
+function meta::legend::service::validation::executeAssertion(tds: TabularDataSet[1], assertion: FunctionDefinition<Any>[1]): TabularDataSet[1]
+{
+  let assertExpression = $assertion.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
+  let nValidationSfe = $assertExpression.parametersValues->evaluateAndDeactivate()->at(0)->evaluateAndDeactivate();
+
+  let testFunc = {tds:TabularDataSet[1]|$tds};
+  let nValidationQuery = ^$testFunc
+  (
+    expressionSequence = $nValidationSfe->toOneMany()
+  )->evaluateAndDeactivate();
+  
+  $nValidationQuery->cast(@Function<{TabularDataSet[1]->TabularDataSet[1]}>)->toOne()->eval($tds);
+}
+
 function meta::legend::service::validation::extractAssertMessage(validation: FunctionDefinition<Any>[1]): String[1]
 {
   let assertExpression = $validation.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
