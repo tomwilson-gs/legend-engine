@@ -14,45 +14,74 @@
  *  limitations under the License.
  */
 
-function meta::legend::service::validation::generateValidationQuery(query: FunctionDefinition<Any>[1], validation: FunctionDefinition<Any>[1]): FunctionDefinition<Any>[1]
+function meta::legend::service::validation::generateValidationQuery(query: FunctionDefinition<Any>[1], assertion: FunctionDefinition<Any>[1]): FunctionDefinition<Any>[1]
 {
-  let assertExpression = $validation.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
+  // STEP 1: Last expression in validation query should be assertTabularDataSetEmpty or assertCollectionEmpty
+  let assertExpression = $assertion.expressionSequence->evaluateAndDeactivate()->last()->cast(@SimpleFunctionExpression);
   assert($assertExpression.func->in([
    meta::legend::service::validation::assertTabularDataSetEmpty_TabularDataSet_1__String_1__Boolean_1_,
    meta::legend::service::validation::assertCollectionEmpty_Any_MANY__String_1__Boolean_1_
   ]));
 
+  // STEP 2: Extend TDS with assert message column
   let assertMessage = $assertExpression.parametersValues->at(1)->cast(@InstanceValue).values->toOne()->cast(@String);
+  let bcs = ^BasicColumnSpecification<meta::pure::tds::TDSRow>(name = 'assert', func = {row: TDSRow[1]|$assertMessage});
 
-  let nValidationSfe = $assertExpression.parametersValues->evaluateAndDeactivate()->at(0)->evaluateAndDeactivate();
-
-  let nValidationQuery = ^$validation
+  let nAssertionSfe = ^SimpleFunctionExpression
   (
-    expressionSequence = $validation.expressionSequence->evaluateAndDeactivate()->init()->concatenate($nValidationSfe)->toOneMany()
-  )->evaluateAndDeactivate();
-
-  let querySfe = $query.expressionSequence->evaluateAndDeactivate()->last()->toOne();
-  let nQuerySfe = ^SimpleFunctionExpression
-  (
-    func = eval_Function_1__T_n__V_m_,
-    functionName = 'eval',
-    genericType = $nValidationSfe.genericType,
-    multiplicity = $nValidationSfe.multiplicity,
+    func = extend_TabularDataSet_1__BasicColumnSpecification_MANY__TabularDataSet_1_,
+    functionName = 'extend',
+    genericType = ^GenericType(rawType = meta::pure::tds::TabularDataSet),
+    multiplicity = PureOne,
     importGroup = system::imports::coreImport,
     parametersValues = [
-      ^InstanceValue(
-        values = $nValidationQuery,
-        multiplicity = $nValidationSfe.multiplicity,
-        genericType = $nValidationSfe.genericType
-      ),
-      $querySfe
+      $assertExpression.parametersValues->evaluateAndDeactivate()->at(0),
+      ^InstanceValue(values = $bcs, multiplicity = PureOne, genericType = $bcs.classifierGenericType->toOne())
     ]
   )->evaluateAndDeactivate();
 
-  ^$query(expressionSequence=$query.expressionSequence->evaluateAndDeactivate()
-                                                           ->init()
-                                                           ->concatenate($nQuerySfe)
-                                                           ->toOneMany())->evaluateAndDeactivate();
+  let nAssertionQuery = ^$assertion(
+    expressionSequence = $assertion.expressionSequence->evaluateAndDeactivate()->init()->concatenate($nAssertionSfe)->toOneMany()
+  )->evaluateAndDeactivate();
+
+  // STEP 3: Inline service query to assertion
+  let querySfe = $query.expressionSequence->evaluateAndDeactivate()->last()->toOne();
+  let param = $nAssertionQuery->functionType().parameters->toOne();
+
+  ^$query(
+    expressionSequence = ^InstanceValue(
+      values = $nAssertionQuery,
+      multiplicity = $nAssertionSfe.multiplicity,
+      genericType = $nAssertionSfe.genericType
+    )->evaluateAndDeactivate()
+     ->meta::legend::service::validation::inlineValueSpecification(
+        newMap([pair($param, $querySfe)]->cast(@Pair<VariableExpression, ValueSpecification>))->evaluateAndDeactivate()
+     )
+     ->cast(@InstanceValue).values
+     ->cast(@FunctionDefinition<Any>).expressionSequence
+     ->toOneMany()
+  );
+}
+
+function <<access.private>> meta::legend::service::validation::inlineValueSpecification(vs: ValueSpecification[1], vars: Map<VariableExpression, ValueSpecification>[1]): ValueSpecification[1]
+{
+  $vs->match([
+    fe: FunctionExpression[1] | ^$fe(parametersValues = $fe.parametersValues->evaluateAndDeactivate()->map(x | $x->meta::legend::service::validation::inlineValueSpecification($vars))),
+    iv: InstanceValue[1] | ^$iv(
+      values = $iv.values->evaluateAndDeactivate()->map(val | $val->match([
+        l: LambdaFunction<Any>[1] | ^$l(expressionSequence = $l.expressionSequence->evaluateAndDeactivate()->at(0)->meta::legend::service::validation::inlineValueSpecification($vars)),
+        v: ValueSpecification[1] | $v->meta::legend::service::validation::inlineValueSpecification($vars),
+        a: Any[1] | $a
+      ]))
+    ),
+    ve: VariableExpression[1] | let resolved = $ve->meta::legend::service::validation::resolveVariable($vars); if ($resolved->isEmpty(), | $ve, | $resolved->toOne());,
+    v: ValueSpecification[1] | $v
+  ]);
+}
+
+function <<access.private>> meta::legend::service::validation::resolveVariable(v: VariableExpression[1], vars: Map<VariableExpression, ValueSpecification>[1]): ValueSpecification[0..1]
+{
+  $vars->keyValues()->filter(p | $p.first.name == $v.name).second->first()->cast(@ValueSpecification);
 }
 
 function meta::legend::service::validation::executeAssertion(tds: TabularDataSet[1], assertion: FunctionDefinition<Any>[1]): TabularDataSet[1]
@@ -65,7 +94,7 @@ function meta::legend::service::validation::executeAssertion(tds: TabularDataSet
   (
     expressionSequence = $nValidationSfe->toOneMany()
   )->evaluateAndDeactivate();
-  
+
   $nValidationQuery->cast(@Function<{TabularDataSet[1]->TabularDataSet[1]}>)->toOne()->eval($tds);
 }
 
