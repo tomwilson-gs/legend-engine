@@ -139,11 +139,13 @@ public class ServiceCompilerExtensionImpl implements ServiceCompilerExtension
 
                         if (pureService._execution() instanceof Root_meta_legend_service_metamodel_PureMultiExecution_Impl)
                         {
-                            RichIterable<? extends org.finos.legend.pure.generated.Root_meta_legend_service_metamodel_KeyedExecutionParameter> executionParameters = ((Root_meta_legend_service_metamodel_PureMultiExecution_Impl)pureService._execution())._executionParameters();
+                            FunctionType executionFunctionType = (FunctionType) ((Root_meta_legend_service_metamodel_PureMultiExecution_Impl)pureService._execution())._func()._classifierGenericType()._typeArguments().getFirst()._rawType();
+                            int executionFunctionParamCountWithExecutionKey = executionFunctionType._parameters().size() + 1;
+
                             pureService._postValidations().forEach(validation ->
                             {
-                                Assert.assertTrue(executionParameters.size() == validation._parameters().size(),
-                                        () -> "Post validation parameter count '" + validation._parameters().size() + "' does not match with service parameter count '" + executionParameters.size() + "'");
+                                Assert.assertTrue(executionFunctionParamCountWithExecutionKey == validation._parameters().size(),
+                                        () -> "Post validation parameter count '" + validation._parameters().size() + "' does not match with service parameter count '" + executionFunctionParamCountWithExecutionKey + "'");
                             });
                         }
 

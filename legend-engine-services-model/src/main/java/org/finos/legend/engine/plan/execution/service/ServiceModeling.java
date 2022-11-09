@@ -168,10 +168,6 @@ public class ServiceModeling
         MetricsHandler.observe("service validation model resolve", start, end);
         MetricsHandler.observeServerOperation("model_resolve", metricsContext, start, end);
 
-        if (service.execution instanceof PureMultiExecution)
-        {
-            throw new UnsupportedOperationException("MultiExecutions not yet supported");
-        }
         Root_meta_legend_service_metamodel_Service pureService = compileService(service, pureModel.getContext(service));
         List<Variable> rawParams = ((PureExecution) service.execution).func.parameters;
 

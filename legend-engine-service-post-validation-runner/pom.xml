@@ -23,8 +23,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>legend-engine-post-validation-runner</artifactId>
-    <name>Legend Engine Post Validation Runner</name>
+    <artifactId>legend-engine-service-post-validation-runner</artifactId>
+    <name>Legend Engine Service Post Validation Runner</name>
 
     <dependencies>
         <dependency>
@@ -72,10 +72,6 @@
             <artifactId>legend-pure-m3-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.pac4j</groupId>
             <artifactId>pac4j-core</artifactId>
         </dependency>
@@ -91,10 +87,6 @@
             <groupId>javax.ws.rs</groupId>
             <artifactId>javax.ws.rs-api</artifactId>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.finos.legend.engine</groupId>-->
-<!--            <artifactId>legend-engine-test-runner-service</artifactId>-->
-<!--        </dependency>-->
     </dependencies>
 
 </project>
