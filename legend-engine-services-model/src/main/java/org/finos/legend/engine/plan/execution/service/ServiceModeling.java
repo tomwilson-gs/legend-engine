@@ -40,7 +40,7 @@ import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore
 import org.finos.legend.engine.plan.generation.extension.PlanGeneratorExtension;
 import org.finos.legend.engine.plan.generation.transformers.LegendPlanTransformers;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
-import org.finos.legend.engine.post.validation.runner.LegendServicePostValidationRunner;
+import org.finos.legend.engine.service.post.validation.runner.LegendServicePostValidationRunner;
 import org.finos.legend.engine.protocol.pure.PureClientVersions;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
