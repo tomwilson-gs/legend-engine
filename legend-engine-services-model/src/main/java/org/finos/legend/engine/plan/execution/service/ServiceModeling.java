@@ -40,7 +40,7 @@ import org.finos.legend.engine.plan.execution.stores.service.plugin.ServiceStore
 import org.finos.legend.engine.plan.generation.extension.PlanGeneratorExtension;
 import org.finos.legend.engine.plan.generation.transformers.LegendPlanTransformers;
 import org.finos.legend.engine.plan.generation.transformers.PlanTransformer;
-import org.finos.legend.engine.post.validation.runner.ServicePostValidationRunner;
+import org.finos.legend.engine.post.validation.runner.LegendServicePostValidationRunner;
 import org.finos.legend.engine.protocol.pure.PureClientVersions;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContext;
 import org.finos.legend.engine.protocol.pure.v1.model.context.PureModelContextData;
@@ -171,7 +171,7 @@ public class ServiceModeling
         Root_meta_legend_service_metamodel_Service pureService = compileService(service, pureModel.getContext(service));
         List<Variable> rawParams = ((PureExecution) service.execution).func.parameters;
 
-        ServicePostValidationRunner postValidationRunner = new ServicePostValidationRunner(pureModel, pureService, rawParams, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
+        LegendServicePostValidationRunner postValidationRunner = new LegendServicePostValidationRunner(pureModel, pureService, rawParams, Root_meta_relational_extension_relationalExtensions__Extension_MANY_(pureModel.getExecutionSupport()), LegendPlanTransformers.transformers, "vX_X_X", profiles, format);
         return postValidationRunner.runValidationAssertion(assertionId);
     }
 }
