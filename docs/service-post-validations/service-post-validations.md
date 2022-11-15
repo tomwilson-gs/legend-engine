@@ -58,7 +58,6 @@ A Post Validation Assertion must accept a parameter of the same Type and Multipl
 - **meta::legend::service::validation::assertCollectionEmpty('...assertion message...')** for queries that return a collection of an entity
 
 `Parameters` must be specified for the Post Validation if the Service uses them. Parameters are evaluated and mapped 1-1 based on the index in which they appear in the service path and the `params` set. A parameter can be expressed as:
-- A static value
 - A lambda function that returns a static value
 - A lambda function that returns a relational result
   - The first column from the first row of the returned result will be used as the parameter
@@ -248,11 +247,11 @@ Service meta::validation::test::DemoService
 ```
 
 ## Frequently Asked Questions
-**Are there any helper functions for common assertions?**
+**Are there any helper functions for common assertions?**  
 Yes, further details to come
 
-**How should I unit test my Post Validations?**
+**How should I unit test my Post Validations?**  
 Further details to come
 
-**Can Post Validations be executed on embedded services?**
+**Can Post Validations be executed on embedded services?**  
 Yes, further details to come
