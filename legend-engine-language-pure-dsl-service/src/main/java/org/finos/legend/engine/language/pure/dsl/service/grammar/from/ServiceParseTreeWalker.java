@@ -16,7 +16,6 @@ package org.finos.legend.engine.language.pure.dsl.service.grammar.from;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.misc.Interval;
-import org.eclipse.collections.api.block.function.Function;
 import org.eclipse.collections.impl.factory.Lists;
 import org.eclipse.collections.impl.utility.ListIterate;
 import org.finos.legend.engine.language.pure.grammar.from.ParseTreeWalkerSourceInformation;

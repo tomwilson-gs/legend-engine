@@ -16,5 +16,5 @@ package org.finos.legend.engine.service.post.validation.runner;
 
 public enum PostValidationAssertionResult
 {
-    PASSED, FAILED, ERROR;
+    PASSED, FAILED, ERROR
 }
