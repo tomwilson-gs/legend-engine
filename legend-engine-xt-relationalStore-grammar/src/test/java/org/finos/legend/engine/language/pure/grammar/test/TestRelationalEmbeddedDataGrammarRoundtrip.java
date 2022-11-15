@@ -99,6 +99,9 @@ public class TestRelationalEmbeddedDataGrammarRoundtrip extends TestGrammarRound
                 "      ]\n" +
                 "    }\n" +
                 "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n");
     }
 }
