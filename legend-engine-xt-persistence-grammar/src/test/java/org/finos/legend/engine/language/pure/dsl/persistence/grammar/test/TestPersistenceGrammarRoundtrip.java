@@ -447,6 +447,9 @@ public class TestPersistenceGrammarRoundtrip extends TestGrammarRoundtrip.TestGr
                 "    mapping: meta::myMapping;\n" +
                 "    runtime: meta::myRuntime;\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n" +
                 "\n\n" +
                 "###Connection" +
