@@ -47,6 +47,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n" +
                 "\n" +
                 "Service meta::pure::myServiceMulti\n" +
@@ -94,6 +97,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      ];\n" +
                 "    }\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
     }
@@ -152,6 +158,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n");
     }
 
@@ -192,6 +201,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n";
         String formatted = "###Service\n" +
                 "Service meta::pure::myServiceSingle\n" +
@@ -239,6 +251,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n";
         testFormat(formatted, unformatted);
     }
@@ -268,6 +283,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n");
     }
 
@@ -300,6 +318,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { ['singleParameter'], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
 
@@ -328,6 +349,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { ['singleParameter', 22, Enum.Reference, -3.14, [1.8, 2, -3], %2019-05-24T00:00:00], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
 
@@ -357,6 +381,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { ['parameter1', %23:12:8.54, true, 440, 13.23, 88, -54, 2.3, [1, 2], %2019-05-24T00:00:00, %2019-05-24], res: Result<Any|*>[1]|$res.values->cast(@TabularDataSet).rows->size() == 1 }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
     }
@@ -390,6 +417,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      { [list([1,2]), 1], |'testexpression3' }\n" +
                 "    ];\n" +
                 "  }\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n");
     }
 
@@ -417,6 +447,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "  testSuites:\n" +
                 "  [\n" +
                 "\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -463,6 +496,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -521,6 +557,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -590,6 +629,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -665,6 +707,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      ]\n" +
                 "    }\n" +
                 "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
 
@@ -726,6 +771,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -806,6 +854,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "      ]\n" +
                 "    }\n" +
                 "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
+                "  ]\n" +
                 "}\n"
         );
 
@@ -854,6 +905,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -918,6 +972,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -1014,6 +1071,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
@@ -1180,6 +1240,9 @@ public class TestServiceGrammarRoundtrip extends TestGrammarRoundtrip.TestGramma
                 "        }\n" +
                 "      ]\n" +
                 "    }\n" +
+                "  ]\n" +
+                "  postValidations:\n" +
+                "  [\n" +
                 "  ]\n" +
                 "}\n"
         );
