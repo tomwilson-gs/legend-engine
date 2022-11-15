@@ -97,6 +97,7 @@ A failing response (in this case with PURE_TDSOBJECT serialization format):
 ## Example Services With Post Validations
 
 ### TabularDataSet Service
+[Unit test](/legend-engine-service-post-validation-runner/src/test/java/org/finos/legend/engine/service/post/validation/runner/TestLegendServicePostValidationRunner.java#L89)
 ```
 ###Service
 Service meta::validation::test::DemoService
@@ -118,14 +119,15 @@ Service meta::validation::test::DemoService
             params: [];
             assertions: [
                 noFirstNamesWithLetterT: { tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T') },
-                rowCountGreaterThan10: { tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10') };
+                rowCountGreaterThan10: { tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10') }
             ];
         }
     ]
 }
 ```
 
-### TabularDataSet Service With Static Parameter
+### TabularDataSet Service With Lambda Static Parameter
+[Unit test](/legend-engine-service-post-validation-runner/src/test/java/org/finos/legend/engine/service/post/validation/runner/TestLegendServicePostValidationRunner.java#L121)
 ```
 ###Service
 Service meta::validation::test::DemoServiceWithParams
@@ -144,10 +146,10 @@ Service meta::validation::test::DemoServiceWithParams
     [
         {
             description: 'A good description of the validation';
-            params: [18];
+            params: [{|18}];
             assertions: [
-                noFirstNamesWithLetterT: tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T'),
-                rowCountGreaterThan10: tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10');
+                noFirstNamesWithLetterT: { tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T') },
+                rowCountGreaterThan10: { tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10') }
             ];
         }
     ]
@@ -155,6 +157,7 @@ Service meta::validation::test::DemoServiceWithParams
 ```
 
 ### TabularDataSet Service With Lambda Query Parameter
+[Unit test](/legend-engine-service-post-validation-runner/src/test/java/org/finos/legend/engine/service/post/validation/runner/TestLegendServicePostValidationRunner.java#L129)
 ```
 ###Service
 Service meta::validation::test::DemoServiceWithParams
@@ -175,8 +178,8 @@ Service meta::validation::test::DemoServiceWithParams
             description: 'A good description of the validation';
             params: [{|meta::validation::test::Person.all()->project([col(p|$p.age, 'age')])->groupBy([], agg('min', r:TDSRow[1]|$r.getInteger('age'), y|$y->min()))}];
             assertions: [
-                noFirstNamesWithLetterT: tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T'),
-                rowCountGreaterThan10: tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10');
+                noFirstNamesWithLetterT: { tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T') },
+                rowCountGreaterThan10: { tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10') }
             ];
         }
     ]
@@ -184,6 +187,7 @@ Service meta::validation::test::DemoServiceWithParams
 ```
 
 ### TabularDataSet Multi Execution Service
+[Unit test](/legend-engine-service-post-validation-runner/src/test/java/org/finos/legend/engine/service/post/validation/runner/TestLegendServicePostValidationRunner.java#L137)
 ```
 ###Service
 Service meta::validation::test::DemoServiceWithParamsMultiExecution
@@ -211,8 +215,8 @@ Service meta::validation::test::DemoServiceWithParamsMultiExecution
             description: 'A good description of the validation';
             params: [18, 'first-key'];
             assertions: [
-                noFirstNamesWithLetterT: tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T'),
-                rowCountGreaterThan10: tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10');
+                noFirstNamesWithLetterT: { tds: TabularDataSet[1]|$tds->filter(row|$row.getString('firstName')->startsWith('T'))->meta::legend::service::validation::assertTabularDataSetEmpty('Expected no first names to begin with the letter T') },
+                rowCountGreaterThan10: { tds: TabularDataSet[1]|$tds->groupBy([], agg('count', r:TDSRow[1]|$r, y|$y->count()))->filter(row|$row.getInteger('count') <= 10)->meta::legend::service::validation::assertTabularDataSetEmpty('Expected row count to be greater than 10') }
             ];
         }
     ]
@@ -220,6 +224,7 @@ Service meta::validation::test::DemoServiceWithParamsMultiExecution
 ```
 
 ### Object Service
+[Unit test](/legend-engine-service-post-validation-runner/src/test/java/org/finos/legend/engine/service/post/validation/runner/TestLegendServicePostValidationRunner.java#L105)
 ```
 Service meta::validation::test::DemoService
 {
@@ -239,7 +244,7 @@ Service meta::validation::test::DemoService
             description: 'A good description of the validation';
             params: [];
             assertions: [
-                noFirstNamesWithLetterT: people: Person[*]|$people->filter(p|$p.firstName->startsWith('T'))->meta::legend::service::validation::assertCollectionEmpty('Expected no first names to begin with the letter T');
+                noFirstNamesWithLetterT: { people: meta::validation::test::Person[*]|$people->filter(p|$p.firstName->startsWith('T'))->meta::legend::service::validation::assertCollectionEmpty('Expected no first names to begin with the letter T') }
             ];
         }
     ]
