@@ -35,10 +35,10 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
     private final String assertionMessage;
     private final StreamingResult result;
     private final SerializationFormat format;
-    private final byte[] b_assertionId = "{\"assertionId\": \"".getBytes();
-    private final byte[] b_assertionMessage = "\", \"assertionMessage\": \"".getBytes();
-    private final byte[] b_assertionResult = "\", \"assertionResult\": ".getBytes();
-    private final byte[] b_assertionViolations = ", \"assertionViolations\":".getBytes();
+    private final byte[] b_id = "{\"id\": \"".getBytes();
+    private final byte[] b_message = "\", \"message\": \"".getBytes();
+    private final byte[] b_result = "\", \"result\": ".getBytes();
+    private final byte[] b_violations = ", \"violations\":".getBytes();
     private final byte[] b_endResult = "}".getBytes();
 
     public PostValidationAssertionStreamingOutput(String assertionId, String assertionMessage, StreamingResult result, SerializationFormat format)
@@ -54,18 +54,18 @@ public class PostValidationAssertionStreamingOutput implements StreamingOutput
     {
         try
         {
-            stream.write(b_assertionId);
+            stream.write(b_id);
             stream.write(assertionId.getBytes());
-            stream.write(b_assertionMessage);
+            stream.write(b_message);
             stream.write(assertionMessage.getBytes());
-            stream.write(b_assertionResult);
+            stream.write(b_result);
 
             PostValidationAssertionResult validationResult = getValidationResult();
             stream.write(("\"" + validationResult + "\"").getBytes());
 
             if (PostValidationAssertionResult.FAILED.equals(validationResult))
             {
-                stream.write(b_assertionViolations);
+                stream.write(b_violations);
 
                 if (result instanceof RelationalResult)
                 {

@@ -73,19 +73,19 @@ The response can take the form of one of the following:
 A passing response:
 ```json
 {
-  "assertionId": "noFirstNamesWithLetterT",
-  "assertionMessage": "Expected no first names to begin with the letter T",
-  "assertionResult": "PASSED"
+  "id": "noFirstNamesWithLetterT",
+  "message": "Expected no first names to begin with the letter T",
+  "result": "PASSED"
 }
 ```
 
 A failing response (in this case with PURE_TDSOBJECT serialization format):
 ```json
 {
-  "assertionId": "noFirstNamesWithLetterT",
-  "assertionMessage": "Expected no first names to begin with the letter T",
-  "assertionResult": "FAILED",
-  "assertionViolations": [
+  "id": "noFirstNamesWithLetterT",
+  "message": "Expected no first names to begin with the letter T",
+  "result": "FAILED",
+  "violations": [
     {
       "firstName": "Tom",
       "lastName": "Wilson",
@@ -246,3 +246,13 @@ Service meta::validation::test::DemoService
     ]
 }
 ```
+
+## Frequently Asked Questions
+**Are there any helper functions for common assertions?**
+Yes, further details to come
+
+**How should I unit test my Post Validations?**
+Further details to come
+
+**Can Post Validations be executed on embedded services?**
+Yes, further details to come
