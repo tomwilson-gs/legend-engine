@@ -116,6 +116,25 @@ function meta::analytics::lineage::computeLineage(f:FunctionDefinition<Any>[1], 
    computeLineage($f, $m, [], $extensions);
 }
 
+function meta::analytics::lineage::computeReportLineage(f:FunctionDefinition<Any>[1], m:Mapping[1], r:Runtime[0..1], extensions:meta::pure::extension::Extension[*]):ReportLineage[1]
+{
+  let mappings = if($r->isEmpty(), |$m, |$m->concatenate(getMappingsFromRuntime($r->toOne())));
+  let modelToModelMappings = $mappings->init();
+
+  let sourceMapping = $mappings->last()->toOne();
+  let funcBody = $f.expressionSequence->evaluateAndDeactivate();
+  let updatedFuncBody = $funcBody->map(e|$e->meta::pure::lineage::analytics::inlineQualifiedProperties(newMap([]->cast(@Pair<VariableExpression, ValueSpecification>), VariableExpression->classPropertyByName('name')->cast(@Property<VariableExpression,String|1>)), $f->openVariableValues(), $extensions));
+  let propertyTrees = $updatedFuncBody->map(e|$e->buildMultiLevelPropertyTrees($modelToModelMappings, $extensions));
+    
+  let reprocessedFuncBody = if($modelToModelMappings->isEmpty() && $mappings->size() == 1,
+                                |$updatedFuncBody,
+                                |$updatedFuncBody->map(e|$e->cast(@FunctionExpression)->meta::pure::mapping::modelToModel::chain::allReprocess([], $modelToModelMappings, $extensions, noDebug()).res));
+
+  let vars = $f->functionType().parameters->evaluateAndDeactivate()->map(p| pair($p.name, ^List<PlanVarPlaceHolder>(values = ^PlanVarPlaceHolder(name=$p.name, type = $p.genericType.rawType->toOne(), multiplicity=$p.multiplicity))));
+
+  buildReportLineage($reprocessedFuncBody->last()->toOne(), $sourceMapping, $vars->newMap());
+}
+
 function meta::analytics::lineage::buildReportLineage(e:Execute[1]):ReportLineage[1]
 {
    let project = $e.funcEntryPoint->evaluateAndDeactivate();
