@@ -47,6 +47,7 @@ Class meta::analytics::lineage::FunctionAnalyticsConfig
 {
   databaseLineage: Boolean[1];
   classLineage: Boolean[1];
+  relationTree: Boolean[1];
   reportLineage: Boolean[1];
 }
 
@@ -93,6 +94,7 @@ function meta::analytics::lineage::buildDefaultAnalyticsConfig(): FunctionAnalyt
   (
     databaseLineage = true,
     classLineage = true,
+    relationTree = true,
     reportLineage = true
   )
 }
@@ -114,16 +116,15 @@ function meta::analytics::lineage::computeLineage(f:FunctionDefinition<Any>[1], 
                                 |$updatedFuncBody->map(e|$e->cast(@FunctionExpression)->meta::pure::mapping::modelToModel::chain::allReprocess([], $modelToModelMappings, $extensions, noDebug()).res));
 
    let vars = $f->functionType().parameters->evaluateAndDeactivate()->map(p| pair($p.name, ^List<PlanVarPlaceHolder>(values = ^PlanVarPlaceHolder(name=$p.name, type = $p.genericType.rawType->toOne(), multiplicity=$p.multiplicity))));
-   let relationTree = if($f->functionReturnType().rawType->toOne()->_subTypeOf(TabularDataSet) && $r->isNotEmpty() && $modelToModelMappings->isEmpty(),
-                            | scanRelations(^LambdaFunction<{->Any[*]}>(expressionSequence = $funcBody), $sourceMapping, $r->toOne(), $vars, noDebug(), $extensions),
-                            | scanRelations($combinedTrees->last()->toOne(), $sourceMapping));
    let classLineageMapping = if($modelToModelMappings->isEmpty() && $mappings->size() == 1, | $sourceMapping, | $modelToModelMappings);
    ^FunctionAnalytics
    (
       databaseLineage = if($config.databaseLineage, |$f->toFlowDatabase($sourceMapping, $combinedTrees, $r)->toGraph(), |^Graph()),
       classLineage = if($config.classLineage, |$f->toFlowClass($combinedTrees, $classLineageMapping)->toGraph(), |^Graph()),
       functionTrees = $combinedTrees,
-      relationTree = $relationTree,
+      relationTree = if($config.relationTree, |if($f->functionReturnType().rawType->toOne()->_subTypeOf(TabularDataSet) && $r->isNotEmpty() && $modelToModelMappings->isEmpty(),
+                                                    | scanRelations(^LambdaFunction<{->Any[*]}>(expressionSequence = $funcBody), $sourceMapping, $r->toOne(), $vars, noDebug(), $extensions),
+                                                    | scanRelations($combinedTrees->last()->toOne(), $sourceMapping)), |^RelationTree()),
       reportLineage = if($config.reportLineage, |buildReportLineage($reprocessedFuncBody->last()->toOne(), $sourceMapping,$vars->newMap()), |^ReportLineage())
    );
 }
